@@ -1,9 +1,9 @@
 <?php
 /**
- * Plugin Name: Sabit İletişim Butonları (V10.0 SaaS Gold Edition)
- * Description: Dinamik klasör adı algılama (Kırılmayan Resim Yolları), Çoklu Temsilci, Woo Etiketleri, Exit-Intent, Mesai Saatleri ve Manuel Güncelleme Sistemi.
- * Version: 10.0
- * Author: Destek Asistanı
+ * Plugin Name: Sabit İletişim Butonları (Telefon,Whatsapp ve Çerez Bildirimi)
+ * Description: Çoklu Temsilci, Woo Etiketleri, Exit-Intent, Mesai Saatleri ve Manuel Güncelleme Sistemi.
+ * Version: 1.0
+ * Author: Raşit Özdemir
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
