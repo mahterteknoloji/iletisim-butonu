@@ -1,8 +1,8 @@
 <?php
 /**
- * Plugin Name: Sabit İletişim Butonları
- * Description: İletişim butonları, Çoklu Temsilci (Dinamik Departmanlar & FontAwesome İkon Seçici), Woo Etiketleri, Exit-Intent, UTM, Mesai Saatleri.
- * Version: 9.8
+ * Plugin Name: Sabit İletişim Butonları (V10.0 SaaS Gold Edition)
+ * Description: Dinamik klasör adı algılama (Kırılmayan Resim Yolları), Çoklu Temsilci, Woo Etiketleri, Exit-Intent, Mesai Saatleri ve Manuel Güncelleme Sistemi.
+ * Version: 10.0
  * Author: Destek Asistanı
  */
 
@@ -28,8 +28,19 @@ function sib_track_click_callback() {
 }
 
 /* ==========================================================================
- * 2. YÖNETİM PANELİ VE SCRIPTLER
+ * 2. YÖNETİM PANELİ YARDIMCI FONKSİYONLARI VE SCRIPTLER
  * ========================================================================== */
+
+// KIRILMAYAN DİNAMİK RESİM YOLU FONKSİYONU (Eklenti klasör ismi değişse de çalışır)
+function sib_get_icon_url($option_name, $default_filename) {
+    $value = get_option($option_name);
+    // Eğer ayar boşsa veya eklentinin kendi dahili img klasörüne işaret ediyorsa dinamik olarak yolu yeniden oluştur
+    if (empty($value) || strpos($value, '/img/' . $default_filename) !== false) {
+        return plugin_dir_url(__FILE__) . 'img/' . $default_filename;
+    }
+    return $value;
+}
+
 add_action('admin_menu', 'sib_iletisim_menu_ekle');
 function sib_iletisim_menu_ekle() {
     $page = add_menu_page('İletişim & Dönüşüm PRO', 'İletişim PRO', 'manage_options', 'sib-iletisim-ayarlari', 'sib_ayarlar_sayfasi_html', 'dashicons-chart-line', 100);
@@ -42,12 +53,9 @@ function sib_admin_scripts() {
     wp_enqueue_script('wp-color-picker');
     wp_enqueue_style('select2', 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css');
     wp_enqueue_script('select2', 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js', array('jquery'), '4.1.0', true);
-    
-    // FontAwesome for Admin
     wp_enqueue_style('font-awesome-5', 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css');
 }
 
-// Frontend FontAwesome
 add_action('wp_enqueue_scripts', 'sib_frontend_scripts');
 function sib_frontend_scripts() {
     wp_enqueue_style('font-awesome-5', 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css');
@@ -78,8 +86,8 @@ function sib_ayarlari_kaydet() {
 }
 
 function sib_ayarlar_sayfasi_html() {
-    $default_tel_icon = plugin_dir_url(__FILE__) . 'img/telefon.webp';
-    $default_wa_icon  = plugin_dir_url(__FILE__) . 'img/whatsapp.webp';
+    $icon_tel_url = sib_get_icon_url('sib_icon_tel', 'telefon.webp');
+    $icon_wa_url  = sib_get_icon_url('sib_icon_wa', 'whatsapp.webp');
     
     $ulkeler = array(
         array('c'=>'90', 'en'=>'Turkey', 'tr'=>'Türkiye'),
@@ -97,7 +105,13 @@ function sib_ayarlar_sayfasi_html() {
     ?>
     <div class="wrap">
         <h1>Sabit İletişim & Dönüşüm Optimizasyonu (SaaS Sürüm) 🚀</h1>
-        <?php settings_errors(); ?>
+        
+        <?php 
+        if (isset($_GET['sib_update_checked']) && $_GET['sib_update_checked'] == '1') {
+            echo '<div class="notice notice-success is-dismissible"><p><strong>✅ Sunucu kontrol edildi:</strong> Güncellemeler başarıyla sorgulandı. Yeni bir sürüm mevcutsa sol menüdeki <b>Başlangıç > Güncellemeler</b> sayfasında belirecektir.</p></div>';
+        }
+        settings_errors(); 
+        ?>
         
         <h2 class="nav-tab-wrapper" id="sib-tabs">
             <a href="#" class="nav-tab nav-tab-active" data-target="tab-temel">📱 Numaralar & Akıllı Özellikler</a>
@@ -112,22 +126,21 @@ function sib_ayarlar_sayfasi_html() {
             
             <div id="tab-temel" class="sib-tab-content">
                 <h3>İletişim Numaraları ve Metinleri</h3>
-    <table class="form-table">
-        <tr valign="top"><th scope="row">Arama Butonu Durumu</th>
-        <td>
-            <select name="sib_tel_status">
-                <option value="acik" <?php selected(get_option('sib_tel_status', 'acik'), 'acik'); ?>>Açık Göster</option>
-                <option value="kapali" <?php selected(get_option('sib_tel_status', 'acik'), 'kapali'); ?>>Gizle</option>
-            </select>
-        </td></tr>
-        <tr valign="top"><th scope="row">WhatsApp Butonu Durumu</th>
-        <td>
-            <select name="sib_wa_status">
-                <option value="acik" <?php selected(get_option('sib_wa_status', 'acik'), 'acik'); ?>>Açık Göster</option>
-                <option value="kapali" <?php selected(get_option('sib_wa_status', 'acik'), 'kapali'); ?>>Gizle</option>
-            </select>
-        </td></tr>
-
+                <table class="form-table">
+                    <tr valign="top"><th scope="row">Arama Butonu Durumu</th>
+                    <td>
+                        <select name="sib_tel_status">
+                            <option value="acik" <?php selected(get_option('sib_tel_status', 'acik'), 'acik'); ?>>Açık Göster</option>
+                            <option value="kapali" <?php selected(get_option('sib_tel_status', 'acik'), 'kapali'); ?>>Gizle</option>
+                        </select>
+                    </td></tr>
+                    <tr valign="top"><th scope="row">WhatsApp Butonu Durumu</th>
+                    <td>
+                        <select name="sib_wa_status">
+                            <option value="acik" <?php selected(get_option('sib_wa_status', 'acik'), 'acik'); ?>>Açık Göster</option>
+                            <option value="kapali" <?php selected(get_option('sib_wa_status', 'acik'), 'kapali'); ?>>Gizle</option>
+                        </select>
+                    </td></tr>
                     <tr valign="top"><th scope="row">Görünen Telefon No:</th>
                     <td><input type="text" name="sib_telefon_gosterim" value="<?php echo esc_attr(sib_get_val('sib_telefon_gosterim', '0532 123 45 67')); ?>" class="regular-text" /></td></tr>
                     <tr valign="top"><th scope="row">Arama Linki İçin No:</th>
@@ -263,15 +276,13 @@ function sib_ayarlar_sayfasi_html() {
                 </table>
             </div>
 
-            <!-- FontAwesome Picker Modal (Admin Only) -->
             <div id="sib-fa-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:999999; align-items:center; justify-content:center;">
                 <div style="background:#fff; width:90%; max-width:600px; padding:20px; border-radius:10px; position:relative; max-height:80vh; overflow-y:auto;">
                     <span id="sib-fa-modal-close" style="position:absolute; top:10px; right:15px; font-size:24px; cursor:pointer;">&times;</span>
                     <h3>İkon Seçin</h3>
                     <input type="text" id="sib-fa-search" placeholder="İkon ara... (örn: phone, user, chat)" style="width:100%; padding:10px; margin-bottom:20px; border:1px solid #ddd; border-radius:5px;" />
                     <div id="sib-fa-list" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); gap:10px; text-align:center;">
-                        <!-- Icons will be listed here via JS -->
-                    </div>
+                        </div>
                 </div>
             </div>
 
@@ -310,12 +321,12 @@ function sib_ayarlar_sayfasi_html() {
                 <table class="form-table">
                     <tr valign="top"><th scope="row">Arama Rengi:</th><td><input type="text" name="sib_color_tel" value="<?php echo esc_attr(sib_get_val('sib_color_tel', '#5d2e8f')); ?>" class="sib-color-picker" /></td></tr>
                     <tr valign="top"><th scope="row">WA Rengi:</th><td><input type="text" name="sib_color_wa" value="<?php echo esc_attr(sib_get_val('sib_color_wa', '#82bb26')); ?>" class="sib-color-picker" /></td></tr>
-                            <tr valign="top"><th scope="row">Başlık (Title) Rengi</th>
-        <td><input type="text" name="sib_color_title" value="<?php echo esc_attr(sib_get_val('sib_color_title', '#ffffff')); ?>" class="sib-color-picker" /></td></tr>
-        <tr valign="top"><th scope="row">Alt Başlık (Subtitle) Rengi</th>
-        <td><input type="text" name="sib_color_subtitle" value="<?php echo esc_attr(sib_get_val('sib_color_subtitle', '#ffffff')); ?>" class="sib-color-picker" /></td></tr>
-        <tr valign="top"><th scope="row">Arama İkonu:</th><td><input type="text" name="sib_icon_tel" id="sib_icon_tel" value="<?php echo esc_attr(sib_get_val('sib_icon_tel', $default_tel_icon)); ?>" class="regular-text" /><button type="button" class="button sib-upload-btn" data-target="#sib_icon_tel">Seç</button></td></tr>
-                    <tr valign="top"><th scope="row">WhatsApp İkonu:</th><td><input type="text" name="sib_icon_wa" id="sib_icon_wa" value="<?php echo esc_attr(sib_get_val('sib_icon_wa', $default_wa_icon)); ?>" class="regular-text" /><button type="button" class="button sib-upload-btn" data-target="#sib_icon_wa">Seç</button></td></tr>
+                    <tr valign="top"><th scope="row">Başlık (Title) Rengi</th>
+                    <td><input type="text" name="sib_color_title" value="<?php echo esc_attr(sib_get_val('sib_color_title', '#ffffff')); ?>" class="sib-color-picker" /></td></tr>
+                    <tr valign="top"><th scope="row">Alt Başlık (Subtitle) Rengi</th>
+                    <td><input type="text" name="sib_color_subtitle" value="<?php echo esc_attr(sib_get_val('sib_color_subtitle', '#ffffff')); ?>" class="sib-color-picker" /></td></tr>
+                    <tr valign="top"><th scope="row">Arama İkonu:</th><td><input type="text" name="sib_icon_tel" id="sib_icon_tel" value="<?php echo esc_attr($icon_tel_url); ?>" class="regular-text" /><button type="button" class="button sib-upload-btn" data-target="#sib_icon_tel">Seç</button></td></tr>
+                    <tr valign="top"><th scope="row">WhatsApp İkonu:</th><td><input type="text" name="sib_icon_wa" id="sib_icon_wa" value="<?php echo esc_attr($icon_wa_url); ?>" class="regular-text" /><button type="button" class="button sib-upload-btn" data-target="#sib_icon_wa">Seç</button></td></tr>
                 </table>
 
                 <hr style="margin-top: 30px; margin-bottom: 20px;">
@@ -373,7 +384,10 @@ function sib_ayarlar_sayfasi_html() {
                 </table>
             </div>
 
-            <br><?php submit_button('Tüm Ayarları Kaydet ve Uygula', 'primary', 'submit', true, ['style' => 'font-size: 16px; padding: 10px 30px;']); ?>
+            <div style="display: flex; gap: 15px; align-items: center; margin-top: 30px;">
+                <?php submit_button('Tüm Ayarları Kaydet ve Uygula', 'primary', 'submit', false, ['style' => 'font-size: 16px; padding: 5px 30px;']); ?>
+                <a href="<?php echo admin_url('admin.php?page=sib-iletisim-ayarlari&sib_force_update=1'); ?>" class="button button-secondary" style="font-size: 14px; padding: 5px 20px;">🔄 Güncellemeleri Şimdi Kontrol Et</a>
+            </div>
         </form>
     </div>
 
@@ -392,7 +406,7 @@ function sib_ayarlar_sayfasi_html() {
 
         $('.sib-country-select').select2({ placeholder: 'Ülke Arayın' });
 
-        // FontAwesome Picker Logic
+        // FontAwesome Picker Altyapısı
         var currentIconTarget = null;
         var faIcons = [
             'fas fa-phone', 'fas fa-mobile-alt', 'fas fa-envelope', 'fas fa-comments', 'fas fa-headset', 
@@ -432,12 +446,11 @@ function sib_ayarlar_sayfasi_html() {
             $('#sib-fa-modal').hide();
         });
 
-        // Update preview on manual input
         $(document).on('input', '.sib-fa-input', function() {
             $(this).siblings('.sib-icon-preview').html('<i class="' + $(this).val() + '"></i>');
         });
 
-        // Dinamik Departman Ekleme
+        // Dinamik Departman Scriptleri
         $('#sib-add-dept').click(function() {
             var index = $('.sib-dept-row').length;
             var html = '<div class="sib-dept-row" style="background: #f9f9f9; padding: 15px; border: 1px solid #ddd; margin-bottom: 15px; border-radius: 8px;">' +
@@ -460,7 +473,6 @@ function sib_ayarlar_sayfasi_html() {
 
         $(document).on('click', '.sib-remove-dept', function() {
             $(this).closest('.sib-dept-row').remove();
-            // İndeksleri güncelle
             $('.sib-dept-row').each(function(i) {
                 $(this).find('input').each(function() {
                     var name = $(this).attr('name');
@@ -474,7 +486,7 @@ function sib_ayarlar_sayfasi_html() {
 }
 
 /* ==========================================================================
- * 3. CSS KODLARI
+ * 3. CSS KODLARI (TASARIM VE SASS BLUR EFFEKTLERİ)
  * ========================================================================== */
 add_action('wp_head', 'sib_eklenti_css_ekle');
 function sib_eklenti_css_ekle() {
@@ -500,32 +512,21 @@ function sib_eklenti_css_ekle() {
         }
 
         #sib-ma-modal *, #sib-ma-modal *::before, #sib-ma-modal *::after { box-sizing: border-box; }
-
-        /* Performans (Lazy Load) Sınıfı */
         .sib-lazy-hidden { opacity: 0 !important; pointer-events: none !important; transform: translateY(20px); }
         
         .floating-buttons{position:fixed;bottom:20px;left:0;width:100%;z-index:9999; transition: all 0.5s ease-out;}
         .cta-btn, .cta-btn-yesil {display:inline-flex;align-items:center; border-radius:50px;width:170px;height:46px;box-sizing:border-box;color:#fff;position:relative;overflow:visible; text-decoration:none !important;}
         .cta-btn {justify-content:flex-end; padding:10px 25px 10px 40px; background:var(--sib-tel-color);}
         .cta-btn-yesil {justify-content:flex-start; padding:10px 40px 10px 25px; background:var(--sib-wa-color);}
+        
         .cta-icon, .cta-icon-yesil {
-            width: 60px;
-            height: 60px;
-            border-radius:50%;
-            display:flex;
-            align-items:center;
-            justify-content:center;
-            position:absolute;
-            top:50%;
-            transform:translateY(-50%);
-            z-index:2;
+            width: 60px; height: 60px; border-radius:50%;display:flex;align-items:center;justify-content:center;position:absolute;top:50%;transform:translateY(-50%);z-index:2;
         }
         .cta-icon {left:-15px; background:var(--sib-tel-color);} .cta-icon-yesil {right:-15px; background:var(--sib-wa-color);}
         .cta-icon img, .cta-icon-yesil img {width:44px; height:auto;}
         .cta-text {display:flex;flex-direction:column;width:100%;text-align:right;align-items:flex-end;z-index:2}
         .cta-text-yesil {display:flex;flex-direction:column;width:100%;text-align:left;align-items:flex-start;z-index:2}
         
-        /* Metinlerin alt alta inmesini ve kaymasını engelle */
         .title-cta{font-size:.875rem;font-weight:700; white-space:nowrap; color: var(--sib-title-color);} 
         .subtitle-cta{font-size:.75rem;opacity:.9;line-height:1.5; white-space:nowrap; color: var(--sib-subtitle-color);}
         
@@ -546,15 +547,15 @@ function sib_eklenti_css_ekle() {
 
         .left-btn{position:absolute;left:20px;bottom:30px} .right-btn{position:absolute;right:20px;bottom:30px}
         
-        /* Bildirim Rozeti (Badge) */
+        /* Bildirim Rozeti */
         .sib-badge {position:absolute; top:-12px; right:-5px; background:red; color:white; font-size:12px; font-weight:bold; width:22px; height:22px; display:flex; align-items:center; justify-content:center; border-radius:50%; border:2px solid white; z-index:10;}
         
-        /* Tooltip (Balon) */
+        /* Tooltip Balon */
         .sib-tooltip {position:absolute; top:-50px; right:0; background:white; color:#333; padding:10px 15px; border-radius:10px; font-size:13px; font-weight:bold; box-shadow:0 5px 15px rgba(0,0,0,0.1); white-space:nowrap; opacity:0; pointer-events:none; transition:all 0.3s; transform:translateY(10px); border:1px solid #eee;}
         .sib-tooltip::after {content:''; position:absolute; bottom:-6px; right:35px; width:12px; height:12px; background:white; border-bottom:1px solid #eee; border-right:1px solid #eee; transform:rotate(45deg);}
         .sib-tooltip.goster {opacity:1; transform:translateY(0); pointer-events:auto;}
         
-        /* Çoklu Temsilci Popup Şık Tasarım (YENİ) */
+        /* Çoklu Temsilci Premium Popup */
         .sib-modal-overlay {position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); backdrop-filter:blur(3px); z-index:99999; display:none; align-items:center; justify-content:center;}
         .sib-modal-overlay.goster {display:flex; animation: fadeIn 0.3s ease;}
         .sib-modal-content {box-sizing: border-box; background:#fff; padding:30px 25px; border-radius:24px; width:90%; max-width:380px; text-align:center; box-shadow:0 20px 60px rgba(0,0,0,0.15); position:relative; transform: translateY(0); animation: slideUp 0.4s ease; max-height: 90vh; overflow-y: auto;}
@@ -577,38 +578,21 @@ function sib_eklenti_css_ekle() {
         .sib-cookie-btn { background: var(--sib-cookie-btn-bg); color: var(--sib-cookie-btn-text); border: none; padding: 8px 25px; border-radius: 25px; cursor: pointer; font-weight: 700; font-size: 14px; transition: transform 0.3s, filter 0.3s; white-space: nowrap; }
         .sib-cookie-btn:hover { filter: brightness(0.9); transform: scale(1.05); }
         
-        @media (max-width: 768px){
+        /* MOBİL OPTİMİZASYON */
+        @media (max-width: 768px) {
             .left-btn{left: 13px; bottom:15px;} .right-btn{right: 13px; bottom:15px;}
             .cta-btn {padding:5px 5px 5px 30px; width:145px; height:45px;} .cta-btn-yesil {padding:5px 30px 5px 5px; width:145px; height:45px;}
-            .cta-icon, .cta-icon-yesil {
-                width: 58px;
-                height: 58px;
-                border-radius:50%;
-                display:flex;
-                align-items:center;
-                justify-content:center;
-                position:absolute;
-                top:50%;
-                transform:translateY(-50%);
-                z-index:2;
-            } .cta-icon {left: -12px;} .cta-icon-yesil {right: -12px;}
+            .cta-icon, .cta-icon-yesil { width: 58px; height: 58px; border-radius:50%; display:flex; align-items:center; justify-content:center; position:absolute; top:50%; transform:translateY(-50%); z-index:2; } 
+            .cta-icon {left: -12px;} .cta-icon-yesil {right: -12px;}
             
-            /* MOBİLDE İKON BOYUTLARI 2 TIK BÜYÜTÜLDÜ */
-            .cta-icon img, .cta-icon-yesil img {width:42px;} 
-            
-            /* MOBİLDE BİLDİRİM ROZETİ (BADGE) YERİ DÜZELTİLDİ */
+            /* MOBİL İKON BOYUTLARI 1 TIK DAHA DÜŞÜRÜLDÜ VE SEÇKİN HALE GETİRİLDİ */
+            .cta-icon img {width:30px;} .cta-icon-yesil img {width:34px;} 
             .sib-badge {top: -15px; right: 5px;}
             
-            /* SARMALAYICI BOYUTLAR GÜNCELLENDİ */
-            .cta-icon::before, .cta-icon-yesil::before {
-                content:""; position:absolute; width:80px; height:80px; top:50%; left:50%; margin-top:-40px; margin-left:-40px; border-radius:50%; box-sizing:border-box; animation:nefes 2s infinite ease-in-out; opacity:0.25;
-            } 
-            .cta-icon::after, .cta-icon-yesil::after {
-                content:""; position:absolute; width:58px; height:58px; top:50%; left:50%; margin-top:-29px; margin-left:-29px; border-radius:50%; box-sizing:border-box; animation:ripple 2s infinite; opacity:0;
-            }
+            .cta-icon::before, .cta-icon-yesil::before { width: 80px; height: 80px; top:50%; left:50%; margin-top:-40px; margin-left:-40px; } 
+            .cta-icon::after, .cta-icon-yesil::after { width: 58px; height: 58px; margin-top:-29px; margin-left:-29px; }
             
             .cta-text, .cta-text-yesil { align-items: center; text-align: center; } 
-            
             .nogosterme { display: flex !important; }
             .nogoster { display: none !important; }
 
@@ -651,15 +635,15 @@ function sib_eklenti_html_ekle() {
         if ($woo_vis === 'only_on_prod') { return; }
     }
 
-    // Değişkenler
+    // Dinamik Yol Denetimi ile İkonları Çek
+    $telefon_gorseli  = esc_url(sib_get_icon_url('sib_icon_tel', 'telefon.webp'));
+    $whatsapp_gorseli = esc_url(sib_get_icon_url('sib_icon_wa', 'whatsapp.webp'));
+
     $whatsapp_numara = esc_js(sib_get_val('sib_wa_cc', '90')) . esc_js(sib_get_val('sib_wa_no', '5321234567'));
     $wa_template     = esc_js(sib_get_val('sib_wa_template', 'Merhaba, ürünleriniz hakkında bilgi almak istiyorum.'));
     
-    // İzleme Kodları
     $track_tel       = esc_attr(get_option('sib_track_tel', ''));
     $track_wa        = esc_attr(get_option('sib_track_wa', ''));
-
-    // Lazy Load
     $is_lazy_load    = get_option('sib_lazy_load', 'yes') === 'yes' ? 'sib-lazy-hidden' : '';
 
     $badge_st        = get_option('sib_badge_status', 'no') === 'yes';
@@ -678,7 +662,7 @@ function sib_eklenti_html_ekle() {
         <?php if(get_option('sib_tel_status', 'acik') !== 'kapali'): ?>
         <div class="left-btn">
             <a href="tel:<?php echo $telefon_linki; ?>" id="sib-tel-link" class="cta-btn" <?php echo !empty($track_tel) ? 'onclick="' . $track_tel . '"' : ''; ?>>
-                <div class="cta-icon"><img src="<?php echo esc_url(sib_get_val('sib_icon_tel', plugin_dir_url(__FILE__) . 'img/telefon.webp')); ?>" alt="Ara"></div>
+                <div class="cta-icon"><img src="<?php echo $telefon_gorseli; ?>" alt="Ara"></div>
                 <div class="cta-text"><div class="title-cta">Arayın</div><div class="subtitle-cta"><?php echo esc_html(sib_get_val('sib_telefon_gosterim', '0532 123 45 67')); ?></div></div>
             </a>
         </div>
@@ -692,7 +676,7 @@ function sib_eklenti_html_ekle() {
                 <div class="cta-text-yesil nogoster"><div class="title-cta">Whatsapp</div><div class="subtitle-cta"><?php echo esc_html(sib_get_val('sib_wa_metin_masaustu', 'Bilgi Alın')); ?></div></div>
                 <div class="cta-icon-yesil">
                     <?php if($badge_st): ?><span class="sib-badge">1</span><?php endif; ?>
-                    <img src="<?php echo esc_url(sib_get_val('sib_icon_wa', plugin_dir_url(__FILE__) . 'img/whatsapp.webp')); ?>" alt="WA">
+                    <img src="<?php echo $whatsapp_gorseli; ?>" alt="WA">
                 </div>
             </a>
         </div>
@@ -755,7 +739,7 @@ function sib_eklenti_html_ekle() {
                 window.removeEventListener('scroll', showBtns);
             };
             window.addEventListener('scroll', showBtns);
-            setTimeout(showBtns, 2500); // 2.5sn sonra otomatik göster
+            setTimeout(showBtns, 2500); 
         }
 
         // 2. Çerez Uyarısı
@@ -782,12 +766,12 @@ function sib_eklenti_html_ekle() {
         var ajaxurl = "<?php echo admin_url('admin-ajax.php'); ?>";
 
         if (waLink) {
-            // 3. Mesai Saati Kontrolü (JS ile anlık)
+            // 3. Mesai Saati Kontrolü
             var isOffHours = false;
             var bhStatus = "<?php echo esc_js(get_option('sib_bh_status', 'kapali')); ?>";
             if (bhStatus === 'acik') {
                 var d = new Date();
-                var day = d.getDay(); // 0: Pazar, 1-5: Hafta İçi, 6: Cumartesi
+                var day = d.getDay(); 
                 var nowVal = d.getHours() * 60 + d.getMinutes();
                 var startStr = 'kapali', endStr = 'kapali';
                 
@@ -840,7 +824,7 @@ function sib_eklenti_html_ekle() {
                 }
             }
 
-            // 6. Dinamik Etiketler & WooCommerce Kaynak
+            // 6. Dinamik Etiketler & WooCommerce Kaynak Kontrolü
             var ref = document.referrer;
             var kaynak = "Doğrudan";
             if (urlParams.has('gclid')) { kaynak = "Google Reklamları"; }
@@ -863,7 +847,7 @@ function sib_eklenti_html_ekle() {
                 waLink.href = encodeLink;
             }
 
-            // 7. Çoklu Temsilci Modal İşlemleri
+            // 7. Çoklu Temsilci Modal Tetikleyicileri
             if(isMa && modal) {
                 document.querySelector('.sib-modal-close').addEventListener('click', function(e){ 
                     e.preventDefault();
@@ -904,7 +888,7 @@ function sib_eklenti_html_ekle() {
             });
         }
 
-        // 9. Etkileşim: Hoşgeldin Balonu (5 sn sonra)
+        // 9. Etkileşim: Hoşgeldin Balonu
         if(tooltip && <?php echo $tt_st ? 'true' : 'false'; ?>) {
             setTimeout(function(){ tooltip.classList.add('goster'); setTimeout(function(){ tooltip.classList.remove('goster'); }, 8000); }, 5000);
         }
@@ -936,15 +920,24 @@ class SIB_Plugin_Update_Checker {
     public $cache_key;
 
     public function __construct($file, $version, $update_url) {
-        $this->plugin_file = plugin_basename($file); // Örn: klasor/dosya.php (Otomatik bulur)
-        $this->plugin_slug = dirname($this->plugin_file); // Örn: klasor
+        $this->plugin_file = plugin_basename($file); 
+        $this->plugin_slug = dirname($this->plugin_file); 
         $this->version     = $version;
         $this->update_url  = $update_url;
-        // GitHub JSON cache sorunlarını önlemek için key'i dinamik tutuyoruz
         $this->cache_key   = 'sib_update_' . md5($this->plugin_file . $this->version);
 
         add_filter('pre_set_site_transient_update_plugins', array($this, 'check_update'));
         add_filter('plugins_api', array($this, 'plugin_popup'), 10, 3);
+        add_action('admin_init', array($this, 'handle_manual_check'));
+    }
+
+    public function handle_manual_check() {
+        if (isset($_GET['page']) && $_GET['page'] === 'sib-iletisim-ayarlari' && isset($_GET['sib_force_update']) && $_GET['sib_force_update'] == '1') {
+            delete_transient($this->cache_key);
+            delete_site_transient('update_plugins');
+            wp_safe_redirect(admin_url('admin.php?page=sib-iletisim-ayarlari&sib_update_checked=1'));
+            exit;
+        }
     }
 
     public function check_update($transient) {
@@ -959,7 +952,6 @@ class SIB_Plugin_Update_Checker {
 
             if (!is_wp_error($remote) && wp_remote_retrieve_response_code($remote) == 200) {
                 $remote = json_decode(wp_remote_retrieve_body($remote));
-                // Yeni sürüm kontrolü için JSON verisini 1 saat önbellekte tut
                 set_transient($this->cache_key, $remote, HOUR_IN_SECONDS);
             }
         }
@@ -967,7 +959,7 @@ class SIB_Plugin_Update_Checker {
         if ($remote && isset($remote->version) && version_compare($this->version, $remote->version, '<')) {
             $res = new stdClass();
             $res->slug         = $this->plugin_slug;
-            $res->plugin       = $this->plugin_file; // WordPress'in aradığı tam eşleşme!
+            $res->plugin       = $this->plugin_file;
             $res->new_version  = $remote->version;
             $res->tested       = isset($remote->tested) ? $remote->tested : '';
             $res->package      = isset($remote->download_url) ? $remote->download_url : '';
@@ -1009,10 +1001,8 @@ class SIB_Plugin_Update_Checker {
     }
 }
 
-// Güncelleme Kontrolünü Başlat
-// __FILE__ parametresi sayesinde eklenti klasörünü otomatik tanır.
 new SIB_Plugin_Update_Checker(
     __FILE__, 
-    '9.8', 
+    '10.0', 
     'https://raw.githubusercontent.com/mahterteknoloji/update-json/refs/heads/main/iletisim-butonu-update.json'
 );
