@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Sabit İletişim Butonları (V9.7 SaaS Edition)
  * Description: İletişim butonları, Çoklu Temsilci (Dinamik Departmanlar & FontAwesome İkon Seçici), Woo Etiketleri, Exit-Intent, UTM, Mesai Saatleri.
- * Version: 9.7
+ * Version: 9.8
  * Author: Destek Asistanı
  */
 
@@ -928,21 +928,20 @@ function sib_eklenti_html_ekle() {
 /* ==========================================================================
  * 5. HARİCİ GÜNCELLEME SİSTEMİ (Update Checker)
  * ========================================================================== */
-/**
- * Bu bölüm eklentinin kendi sunucunuzdan veya GitHub üzerinden 
- * otomatik güncelleme almasını sağlar.
- */
 class SIB_Plugin_Update_Checker {
     public $plugin_slug;
+    public $plugin_file;
     public $version;
     public $update_url;
     public $cache_key;
 
-    public function __construct($plugin_slug, $version, $update_url) {
-        $this->plugin_slug = $plugin_slug;
+    public function __construct($file, $version, $update_url) {
+        $this->plugin_file = plugin_basename($file); // Örn: klasor/dosya.php (Otomatik bulur)
+        $this->plugin_slug = dirname($this->plugin_file); // Örn: klasor
         $this->version     = $version;
         $this->update_url  = $update_url;
-        $this->cache_key   = 'sib_update_check_' . $plugin_slug;
+        // GitHub JSON cache sorunlarını önlemek için key'i dinamik tutuyoruz
+        $this->cache_key   = 'sib_update_' . md5($this->plugin_file . $this->version);
 
         add_filter('pre_set_site_transient_update_plugins', array($this, 'check_update'));
         add_filter('plugins_api', array($this, 'plugin_popup'), 10, 3);
@@ -960,17 +959,18 @@ class SIB_Plugin_Update_Checker {
 
             if (!is_wp_error($remote) && wp_remote_retrieve_response_code($remote) == 200) {
                 $remote = json_decode(wp_remote_retrieve_body($remote));
+                // Yeni sürüm kontrolü için JSON verisini 1 saat önbellekte tut
                 set_transient($this->cache_key, $remote, HOUR_IN_SECONDS);
             }
         }
 
-        if ($remote && version_compare($this->version, $remote->version, '<')) {
+        if ($remote && isset($remote->version) && version_compare($this->version, $remote->version, '<')) {
             $res = new stdClass();
             $res->slug         = $this->plugin_slug;
-            $res->plugin       = $this->plugin_slug . '/' . $this->plugin_slug . '.php';
+            $res->plugin       = $this->plugin_file; // WordPress'in aradığı tam eşleşme!
             $res->new_version  = $remote->version;
-            $res->tested       = $remote->tested;
-            $res->package      = $remote->download_url;
+            $res->tested       = isset($remote->tested) ? $remote->tested : '';
+            $res->package      = isset($remote->download_url) ? $remote->download_url : '';
             $res->icons        = array('default' => 'https://s.w.org/plugins/geopattern-icon/sabit-iletisim-butonlari.svg');
             
             $transient->response[$res->plugin] = $res;
@@ -997,18 +997,22 @@ class SIB_Plugin_Update_Checker {
         $res->name           = 'Sabit İletişim Butonları PRO';
         $res->slug           = $this->plugin_slug;
         $res->version        = $remote->version;
-        $res->tested         = $remote->tested;
-        $res->last_updated   = $remote->last_updated;
+        $res->tested         = isset($remote->tested) ? $remote->tested : '';
+        $res->last_updated   = isset($remote->last_updated) ? $remote->last_updated : '';
         $res->sections       = array(
-            'description'  => $remote->sections->description,
-            'changelog'    => $remote->sections->changelog
+            'description'  => isset($remote->sections->description) ? $remote->sections->description : '',
+            'changelog'    => isset($remote->sections->changelog) ? $remote->sections->changelog : ''
         );
-        $res->download_link  = $remote->download_url;
+        $res->download_link  = isset($remote->download_url) ? $remote->download_url : '';
 
         return $res;
     }
 }
 
 // Güncelleme Kontrolünü Başlat
-// NOT: 'https://alanadiniz.com/update.json' kısmını kendi sunucunuzdaki dosya ile değiştirin.
-new SIB_Plugin_Update_Checker('pasted_content', '9.7', 'https://alanadiniz.com/update.json');
+// __FILE__ parametresi sayesinde eklenti klasörünü otomatik tanır.
+new SIB_Plugin_Update_Checker(
+    __FILE__, 
+    '9.8', 
+    'https://raw.githubusercontent.com/mahterteknoloji/update-json/refs/heads/main/iletisim-butonu-update.json'
+);
