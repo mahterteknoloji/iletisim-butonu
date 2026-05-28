@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin Name: Sabit İletişim Butonları (V9.7 SaaS Edition)
+ * Plugin Name: Sabit İletişim Butonları
  * Description: İletişim butonları, Çoklu Temsilci (Dinamik Departmanlar & FontAwesome İkon Seçici), Woo Etiketleri, Exit-Intent, UTM, Mesai Saatleri.
  * Version: 9.8
  * Author: Destek Asistanı
